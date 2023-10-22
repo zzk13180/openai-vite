@@ -13,6 +13,20 @@ export class API {
     return response
   }
 
+  private request(
+    path: string,
+    params: OpenAI.Chat.ChatCompletionCreateParams,
+  ): Promise<Response> {
+    // 强制开启流式传输 (stream: true)
+    return fetch(`${this.BASE_URL}${path}`, {
+      body: JSON.stringify({ ...params, stream: true }),
+      cache: this.CACHE,
+      credentials: this.CREDENTIALS,
+      method: this.METHOD,
+      headers: this.headers,
+    })
+  }
+
   /**
    * 用于处理 Server-Sent Events (SSE) 流。
    * @param stream 响应的 ReadableStream
@@ -26,12 +40,7 @@ export class API {
       while (true) {
         const { done, value } = await reader.read()
         if (done) {
-          // 流结束时，处理剩余的 buffer
-          if (buffer.trim()) {
-            const results = API.parseBlock(buffer)
-            if (results.length > 0) yield results
-          }
-          return
+          break
         }
 
         // 解码当前 chunk 并追加到 buffer
@@ -44,10 +53,20 @@ export class API {
         const results: OpenAI.ChatCompletionChunk[] = []
         for (const line of lines) {
           const parsed = API.parseLine(line)
-          if (parsed) results.push(parsed)
+          if (parsed) {
+            results.push(parsed)
+          }
         }
         // 如果解析出有效数据，通过 yield 返回
-        if (results.length > 0) yield results
+        if (results.length > 0) {
+          yield results
+        }
+      }
+
+      // 流结束时，处理剩余的 buffer
+      const results = API.parseBlock(buffer)
+      if (results.length > 0) {
+        yield results
       }
     } finally {
       reader.releaseLock()
@@ -71,10 +90,14 @@ export class API {
   static parseLine(line: string): OpenAI.ChatCompletionChunk | null {
     line = line.trim()
     // SSE 格式检查
-    if (!line.startsWith('data:')) return null
+    if (!line.startsWith('data:')) {
+      return null
+    }
     const value = line.substring(5).trim()
     // 忽略空行或结束标记
-    if (!value || value === '[DONE]') return null
+    if (!value || value === '[DONE]') {
+      return null
+    }
 
     try {
       return JSON.parse(value)
@@ -82,19 +105,5 @@ export class API {
       console.error('JSON parse error:', e)
       return null
     }
-  }
-
-  private async request(
-    path: string,
-    params: OpenAI.Chat.ChatCompletionCreateParams,
-  ): Promise<Response> {
-    // 强制开启流式传输 (stream: true)
-    return fetch(`${this.BASE_URL}${path}`, {
-      body: JSON.stringify({ ...params, stream: true }),
-      cache: this.CACHE,
-      credentials: this.CREDENTIALS,
-      method: this.METHOD,
-      headers: this.headers,
-    })
   }
 }
