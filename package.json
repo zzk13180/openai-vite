@@ -1,0 +1,15 @@
+{
+  "name": "openai-vite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "start": "vite"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.2",
+    "openai": "^4.12.4",
+    "vite": "^4.4.5"
+  }
+}
