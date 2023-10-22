@@ -8,8 +8,9 @@
     "start": "vite"
   },
   "devDependencies": {
-    "typescript": "^5.0.2",
+    "https-proxy-agent": "^7.0.6",
     "openai": "^4.12.4",
+    "typescript": "^5.0.2",
     "vite": "^4.4.5"
   }
 }
